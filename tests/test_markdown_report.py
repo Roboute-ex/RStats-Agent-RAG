@@ -6,6 +6,11 @@ def test_markdown_report_contains_required_sections():
     response = RStatsAgent().run("请用 ggplot2 对 mpg 画散点图")
     markdown = render_markdown_report(response)
 
+    assert "# RStats-Agent-RAG Analysis Report" in markdown
+    assert "RStats-Agent-RAG v0.1" not in markdown
+    assert "v0.1 使用" not in markdown
+    assert "使用本地语料、TF-IDF 检索和模板生成，不调用在线 LLM。" in markdown
+    assert "knowledge_source=" in markdown
     assert "## 用户问题" in markdown
     assert "## 检索到的知识片段 ID" in markdown
     assert "## 生成的 R 代码" in markdown

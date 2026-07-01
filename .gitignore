@@ -2,6 +2,8 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
+.pytest-tmp/
+.test-output/
 .mypy_cache/
 .ruff_cache/
 .venv/
@@ -10,3 +12,6 @@ build/
 dist/
 reports/*.md
 !reports/.gitkeep
+data/raw/cran_packages.json
+data/processed/*.jsonl
+!data/processed/.gitkeep

@@ -22,7 +22,7 @@ def render_markdown_report(response: AgentResponse) -> str:
 
     return "\n".join(
         [
-            "# RStats-Agent-RAG v0.1 报告",
+            "# RStats-Agent-RAG Analysis Report",
             "",
             "## 用户问题",
             response.question,

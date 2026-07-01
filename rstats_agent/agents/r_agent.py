@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from rstats_agent.agents.fusion import fuse_context
 from rstats_agent.agents.generator import generate_answer
-from rstats_agent.agents.prompts import V01_SCOPE_NOTE
+from rstats_agent.agents.prompts import LOCAL_PIPELINE_NOTE
 from rstats_agent.execution.r_executor import DockerRExecutor
 from rstats_agent.knowledge.retriever import LocalTfidfRetriever, build_default_retriever
 from rstats_agent.knowledge.query_rewriter import detect_task_types, rewrite_query
@@ -12,7 +12,7 @@ from rstats_agent.schemas import AgentRequest, AgentResponse
 
 
 class RStatsAgent:
-    """Local deterministic Agent for the v0.1 R statistics MVP."""
+    """Local deterministic Agent for the R statistics MVP."""
 
     def __init__(
         self,
@@ -34,7 +34,8 @@ class RStatsAgent:
         execution = self.executor.execute(generated.r_code, enabled=request.execute)
         citations = [item.as_citation() for item in context]
         diagnostics = [
-            V01_SCOPE_NOTE,
+            LOCAL_PIPELINE_NOTE,
+            f"knowledge_source={self.retriever.knowledge_source}",
             f"检索 top_k={request.top_k}，上下文片段数={len(context)}。",
         ]
         diagnostics.extend(execution.diagnostics)
@@ -51,5 +52,6 @@ class RStatsAgent:
             failure_modes=generated.failure_modes,
             citations=citations,
             execution=execution,
+            knowledge_source=self.retriever.knowledge_source,
             diagnostics=diagnostics,
         )

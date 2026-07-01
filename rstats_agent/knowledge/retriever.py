@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from rstats_agent.config import DEFAULT_TOP_K
-from rstats_agent.knowledge.corpus_loader import load_corpus
+from rstats_agent.knowledge.corpus_loader import load_corpus, load_corpus_with_metadata
 from rstats_agent.knowledge.query_rewriter import rewrite_query
 from rstats_agent.schemas import KnowledgeChunk, RetrievalResult
 
@@ -19,6 +20,8 @@ PRIORITY_BONUS = {"P0": 0.03, "P1": 0.015, "P2": 0.0}
 @dataclass
 class LocalTfidfRetriever:
     chunks: list[KnowledgeChunk]
+    knowledge_source: str = "custom_corpus"
+    corpus_path: Path | None = None
     vectorizer: TfidfVectorizer = field(init=False)
     matrix: object = field(init=False)
 
@@ -80,4 +83,9 @@ class LocalTfidfRetriever:
 
 
 def build_default_retriever() -> LocalTfidfRetriever:
-    return LocalTfidfRetriever(load_corpus())
+    chunks, knowledge_source, corpus_path = load_corpus_with_metadata()
+    return LocalTfidfRetriever(
+        chunks=chunks,
+        knowledge_source=knowledge_source,
+        corpus_path=corpus_path,
+    )

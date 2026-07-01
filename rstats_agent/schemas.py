@@ -19,6 +19,8 @@ class KnowledgeChunk:
     license: str
     provenance: str
     priority: str
+    package_version: str | None = None
+    published: str | None = None
 
 
 @dataclass(frozen=True)
@@ -34,6 +36,8 @@ class RetrievalResult:
     provenance: str
     priority: str
     score: float
+    package_version: str | None = None
+    published: str | None = None
 
     @classmethod
     def from_chunk(cls, chunk: KnowledgeChunk, score: float) -> "RetrievalResult":
@@ -49,6 +53,8 @@ class RetrievalResult:
             provenance=chunk.provenance,
             priority=chunk.priority,
             score=score,
+            package_version=chunk.package_version,
+            published=chunk.published,
         )
 
     def as_citation(self) -> str:
@@ -84,6 +90,7 @@ class AgentResponse:
     failure_modes: list[str]
     citations: list[str]
     execution: ExecutionResult
+    knowledge_source: str = "unknown"
     diagnostics: list[str] = field(default_factory=list)
 
 
