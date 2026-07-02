@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from uuid import uuid4
 
 from data.build_license_ledger import build_license_ledger, write_jsonl
 from data.crawl_cran_packages import crawl_packages
@@ -7,6 +8,11 @@ from data.crawl_cran_packages import crawl_packages
 
 FIXTURE_DIR = Path("data/raw/fixtures")
 TEST_OUTPUT = Path(".test-output")
+
+
+def _output_path(name: str) -> Path:
+    TEST_OUTPUT.mkdir(exist_ok=True)
+    return TEST_OUTPUT / f"{uuid4().hex}-{name}"
 
 
 def test_build_license_ledger_generates_license_rows():
@@ -25,8 +31,7 @@ def test_build_license_ledger_generates_license_rows():
 def test_write_license_ledger_jsonl():
     packages = crawl_packages(["dplyr"], offline_html_dir=FIXTURE_DIR)
     rows = build_license_ledger(packages)
-    TEST_OUTPUT.mkdir(exist_ok=True)
-    output = TEST_OUTPUT / "test-licenses.jsonl"
+    output = _output_path("test-licenses.jsonl")
 
     write_jsonl(rows, output)
 

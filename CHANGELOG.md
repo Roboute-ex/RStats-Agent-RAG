@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.0
+
+- 新增 embedding backend 协议。
+- 新增 deterministic `LocalHashEmbeddingBackend`，用于离线测试和默认 fallback。
+- 新增 optional `SentenceTransformerEmbeddingBackend`，通过 `.[vector]` 安装。
+- 新增 `NumpyVectorIndex` 和 optional `FaissVectorIndex`。
+- 新增 `data/build_vector_index.py`，支持从 processed corpus 或 fixture corpus 构建本地向量 artifacts。
+- 新增 `HybridRetriever`，支持 TF-IDF 与向量检索分数融合，并在缺少向量索引时 fallback 到 TF-IDF。
+- CLI 新增 `--retriever tfidf|hybrid`，默认仍为 `tfidf`。
+- 更新 `.gitignore`，忽略 `knowledge/artifacts` 生成索引文件。
+- 新增 v0.3 离线测试，覆盖 embedding backend、vector index、hybrid retrieval 和 vector build 脚本。
+- 增强 README 展示内容，补充项目动机、Agent 架构、版本演进、RAG 知识库设计、v0.3 向量检索设计、工程亮点和面试讲法。
+- 更新 AGENTS，强调 README 必须真实反映当前能力，不得夸大完整 CRAN/PDF/vignette/LLM/生产沙箱支持。
+
 ## 0.2.0
 
 - 新增 `data/` 层，用于 CRAN package page metadata 采集、raw 保存、processed corpus 构建和 license ledger 构建。

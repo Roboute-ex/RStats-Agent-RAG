@@ -38,6 +38,9 @@ class RetrievalResult:
     score: float
     package_version: str | None = None
     published: str | None = None
+    retriever: str = "tfidf"
+    vector_score: float | None = None
+    lexical_score: float | None = None
 
     @classmethod
     def from_chunk(cls, chunk: KnowledgeChunk, score: float) -> "RetrievalResult":
@@ -55,6 +58,8 @@ class RetrievalResult:
             score=score,
             package_version=chunk.package_version,
             published=chunk.published,
+            retriever="tfidf",
+            lexical_score=score,
         )
 
     def as_citation(self) -> str:
@@ -66,6 +71,7 @@ class AgentRequest:
     question: str
     top_k: int = 6
     execute: bool = False
+    retriever: str = "tfidf"
 
 
 @dataclass

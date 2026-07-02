@@ -1,4 +1,5 @@
 import json
+from uuid import uuid4
 from pathlib import Path
 
 from data.build_corpus import build_corpus_from_packages, write_jsonl
@@ -7,6 +8,11 @@ from data.crawl_cran_packages import crawl_packages
 
 FIXTURE_DIR = Path("data/raw/fixtures")
 TEST_OUTPUT = Path(".test-output")
+
+
+def _output_path(name: str) -> Path:
+    TEST_OUTPUT.mkdir(exist_ok=True)
+    return TEST_OUTPUT / f"{uuid4().hex}-{name}"
 
 
 def test_build_corpus_from_packages_generates_expected_chunks():
@@ -34,8 +40,7 @@ def test_build_corpus_from_packages_generates_expected_chunks():
 def test_write_jsonl_writes_one_json_object_per_line():
     packages = crawl_packages(["renv"], offline_html_dir=FIXTURE_DIR)
     rows = build_corpus_from_packages(packages)
-    TEST_OUTPUT.mkdir(exist_ok=True)
-    output = TEST_OUTPUT / "test-corpus.jsonl"
+    output = _output_path("test-corpus.jsonl")
 
     write_jsonl(rows, output)
 

@@ -1,11 +1,17 @@
 import json
 from pathlib import Path
+from uuid import uuid4
 
 from rstats_agent.config import DEFAULT_CORPUS_PATH
 from rstats_agent.knowledge.corpus_loader import identify_corpus_source, load_corpus, resolve_corpus_path
 
 
 TEST_OUTPUT = Path(".test-output")
+
+
+def _output_path(name: str) -> Path:
+    TEST_OUTPUT.mkdir(exist_ok=True)
+    return TEST_OUTPUT / f"{uuid4().hex}-{name}"
 
 
 def test_loads_fixture_corpus_with_required_chunks():
@@ -22,9 +28,8 @@ def test_loads_fixture_corpus_with_required_chunks():
 
 
 def test_resolve_corpus_path_prefers_processed_when_present():
-    TEST_OUTPUT.mkdir(exist_ok=True)
-    processed = TEST_OUTPUT / "loader-preferred-corpus.jsonl"
-    fixture = TEST_OUTPUT / "loader-preferred-fixture.jsonl"
+    processed = _output_path("loader-preferred-corpus.jsonl")
+    fixture = _output_path("loader-preferred-fixture.jsonl")
     processed.write_text("", encoding="utf-8")
     fixture.write_text("", encoding="utf-8")
 
@@ -33,9 +38,8 @@ def test_resolve_corpus_path_prefers_processed_when_present():
 
 
 def test_resolve_corpus_path_falls_back_to_fixture_when_processed_missing():
-    TEST_OUTPUT.mkdir(exist_ok=True)
-    processed = TEST_OUTPUT / "loader-missing-corpus.jsonl"
-    fixture = TEST_OUTPUT / "loader-fallback-fixture.jsonl"
+    processed = _output_path("loader-missing-corpus.jsonl")
+    fixture = _output_path("loader-fallback-fixture.jsonl")
     fixture.write_text("", encoding="utf-8")
 
     assert resolve_corpus_path(processed_path=processed, fixture_path=fixture) == fixture
@@ -43,8 +47,7 @@ def test_resolve_corpus_path_falls_back_to_fixture_when_processed_missing():
 
 
 def test_load_corpus_prefers_processed_rows_when_present():
-    TEST_OUTPUT.mkdir(exist_ok=True)
-    processed = TEST_OUTPUT / "loader-processed-corpus.jsonl"
+    processed = _output_path("loader-processed-corpus.jsonl")
     row = {
         "chunk_id": "renv-cran-package-overview",
         "source_type": "cran_package_overview",

@@ -1,14 +1,26 @@
 # AGENTS.md
 
-本项目是 `RStats-Agent-RAG`，当前版本为 v0.2。本仓库优先保持本地、可审计、可测试、Windows PowerShell 友好。
+本项目是 `RStats-Agent-RAG`，当前版本为 v0.3。本仓库优先保持本地、可审计、可测试、Windows PowerShell 友好。
 
 ## 工作原则
 
-- 测试必须 deterministic，不能访问网络，不能依赖 API key、真实 CRAN 下载、本机 R 或 Docker。
-- 默认不调用在线 LLM；不要引入 OpenAI、BGE、FAISS、Milvus、Weaviate 作为 v0.2 功能。
+- 测试必须 deterministic，不能访问网络，不能依赖 API key、真实 CRAN 下载、本机 R、Docker 或 FAISS。
+- 默认不调用在线 LLM；不要引入 OpenAI、Milvus、Weaviate、Streamlit、FastAPI、repair loop 等非 v0.3 功能。
+- README 和公开文档必须真实反映当前能力，不能夸大为完整 CRAN、完整 PDF/vignette 解析、真实 LLM 生成、生产级沙箱或替代统计专家审查。
 - R/Docker 执行必须是 optional capability。不可用时返回 `skipped`，不能让核心测试失败。
 - 真实 CRAN crawl 只允许通过开发者手动命令运行；测试和默认流程必须使用 offline fixtures。
-- 对 R 代码执行前必须经过 `execution.safety.check_r_code_safety`。
+- 测试不能下载 SentenceTransformer 模型。
+- 如果 FAISS 不存在，测试应验证清晰错误或跳过 optional 路径；不能要求本机默认安装 FAISS。
+
+## v0.3 Vector 层约束
+
+- `faiss-cpu` 和 `sentence-transformers` 只能放在 `vector` optional dependencies，不能进入核心 dependencies。
+- `LocalHashEmbeddingBackend` 是默认离线测试 backend。
+- 测试不能下载 SentenceTransformer 模型或访问模型仓库。
+- `NumpyVectorIndex` 是默认本地 fallback。
+- `FaissVectorIndex` 必须延迟 import `faiss`，并在未安装时提示 `py -3 -m pip install -e ".[vector]"`。
+- `knowledge/artifacts/` 中的生成文件不要提交，尤其是 `*.index`、`*.faiss`、`*.npy`、`*.json`、`*.jsonl`、`*.pkl`、`*.parquet`。
+- 保留 `knowledge/artifacts/.gitkeep`。
 
 ## v0.2 Data 层约束
 
@@ -32,9 +44,7 @@
 - `provenance`
 - `priority`
 
-v0.2 processed corpus 可额外包含 `package_version`、`published`。
-
-v0.1 离线测试语料应使用 `license: "synthetic_fixture"` 和 `provenance: "handwritten_summary_for_offline_tests"`，避免被误解为真实官方许可声明。
+v0.2/v0.3 processed corpus 可额外包含 `package_version`、`published`。Retrieval results 可额外包含 `retriever`、`vector_score`、`lexical_score`。
 
 ## 常用命令
 
@@ -44,6 +54,7 @@ py -3 -m rstats_agent.cli "请用 dplyr 清洗销售数据，按 store 和 month
 py -3 data/crawl_cran_packages.py --offline-fixtures --output data/raw/cran_packages.json
 py -3 data/build_corpus.py --input data/raw/cran_packages.json --output data/processed/corpus.jsonl
 py -3 data/build_license_ledger.py --input data/raw/cran_packages.json --output data/processed/licenses.jsonl
+py -3 data/build_vector_index.py --backend local-hash --index-backend numpy --output-dir knowledge/artifacts
 ```
 
 ## 不做的事
@@ -51,4 +62,5 @@ py -3 data/build_license_ledger.py --input data/raw/cran_packages.json --output 
 - 不在测试中联网。
 - 不自动安装 R 包。
 - 不自动下载 Docker 镜像。
+- 不下载 SentenceTransformer 模型作为测试前置。
 - 不把 fixture 当成完整官方文档。

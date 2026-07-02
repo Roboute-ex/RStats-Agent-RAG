@@ -15,3 +15,11 @@ reports/*.md
 data/raw/cran_packages.json
 data/processed/*.jsonl
 !data/processed/.gitkeep
+knowledge/artifacts/*.index
+knowledge/artifacts/*.faiss
+knowledge/artifacts/*.npy
+knowledge/artifacts/*.json
+knowledge/artifacts/*.jsonl
+knowledge/artifacts/*.pkl
+knowledge/artifacts/*.parquet
+!knowledge/artifacts/.gitkeep

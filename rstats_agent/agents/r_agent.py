@@ -36,8 +36,10 @@ class RStatsAgent:
         diagnostics = [
             LOCAL_PIPELINE_NOTE,
             f"knowledge_source={self.retriever.knowledge_source}",
+            f"retriever={request.retriever}",
             f"检索 top_k={request.top_k}，上下文片段数={len(context)}。",
         ]
+        diagnostics.extend(getattr(self.retriever, "diagnostics", []))
         diagnostics.extend(execution.diagnostics)
 
         return AgentResponse(
