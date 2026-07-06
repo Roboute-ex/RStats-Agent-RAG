@@ -8,29 +8,38 @@ from pathlib import Path
 from rstats_agent.agents.r_agent import RStatsAgent
 from rstats_agent.config import DEFAULT_VECTOR_ARTIFACTS_DIR
 from rstats_agent.embeddings.local_hash import LocalHashEmbeddingBackend
+from rstats_agent.execution.r_executor import DEFAULT_R_DOCKER_IMAGE
 from rstats_agent.knowledge.hybrid_retriever import HybridRetriever
 from rstats_agent.knowledge.retriever import build_default_retriever
 from rstats_agent.knowledge.vector_index import NumpyVectorIndex
-from rstats_agent.schemas import AgentRequest
 from rstats_agent.reporting.markdown import render_markdown_report, write_markdown_report
+from rstats_agent.schemas import AgentRequest
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="RStats-Agent-RAG local demo")
-    parser.add_argument("question", help="中文或英文 R 统计任务需求")
-    parser.add_argument("--top-k", type=int, default=6, help="检索知识片段数量，默认 6")
+    parser.add_argument("question", help="Chinese or English R statistics task request")
+    parser.add_argument("--top-k", type=int, default=6, help="Number of retrieved knowledge chunks, default 6")
     parser.add_argument(
         "--retriever",
         choices=["tfidf", "hybrid"],
         default="tfidf",
-        help="检索模式，默认 tfidf；hybrid 在本地向量 artifacts 存在时融合向量检索",
+        help="Retrieval mode. hybrid uses local vector artifacts when available and falls back to TF-IDF.",
     )
-    parser.add_argument("--execute", action="store_true", help="尝试使用本地 Docker 执行生成的 R 代码")
+    parser.add_argument("--execute", action="store_true", help="Try optional Docker/R execution for generated R code")
     parser.add_argument(
         "--no-execute",
         dest="execute",
         action="store_false",
-        help="兼容参数：显式保持不执行 R 代码",
+        help="Compatibility flag: explicitly keep R execution disabled",
+    )
+    parser.add_argument("--repair", action="store_true", help="Enable v0.4 rule-based repair suggestions")
+    parser.add_argument("--max-repairs", type=int, default=1, help="Maximum repair attempts, default 1")
+    parser.add_argument("--timeout-sec", type=int, default=20, help="Optional Docker/R execution timeout, default 20")
+    parser.add_argument(
+        "--docker-image",
+        default=DEFAULT_R_DOCKER_IMAGE,
+        help=f"Optional Docker/R image, default {DEFAULT_R_DOCKER_IMAGE}",
     )
     parser.add_argument(
         "--report",
@@ -38,7 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
         dest="report_path",
         type=Path,
         default=None,
-        help="可选：将 Markdown 报告写入指定路径",
+        help="Optional path for writing the Markdown report",
     )
     parser.set_defaults(execute=False)
     return parser
@@ -73,6 +82,10 @@ def main(argv: list[str] | None = None) -> int:
             top_k=args.top_k,
             execute=args.execute,
             retriever=args.retriever,
+            repair=args.repair,
+            max_repairs=args.max_repairs,
+            timeout_sec=args.timeout_sec,
+            docker_image=args.docker_image,
         )
     )
     if args.report_path:

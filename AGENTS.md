@@ -1,16 +1,25 @@
 # AGENTS.md
 
-本项目是 `RStats-Agent-RAG`，当前版本为 v0.3。本仓库优先保持本地、可审计、可测试、Windows PowerShell 友好。
+本项目是 `RStats-Agent-RAG`，当前版本为 v0.4。本仓库优先保持本地、可审计、可测试、Windows PowerShell 友好。
 
 ## 工作原则
 
-- 测试必须 deterministic，不能访问网络，不能依赖 API key、真实 CRAN 下载、本机 R、Docker 或 FAISS。
-- 默认不调用在线 LLM；不要引入 OpenAI、Milvus、Weaviate、Streamlit、FastAPI、repair loop 等非 v0.3 功能。
+- 测试必须 deterministic，不能访问网络，不能依赖 API key、真实 CRAN 下载、本机 R、Docker、FAISS 或 sentence-transformers。
+- 默认不调用在线 LLM；不要引入 OpenAI、BGE、Milvus、Weaviate、Streamlit、FastAPI 等非 v0.4 功能。
 - README 和公开文档必须真实反映当前能力，不能夸大为完整 CRAN、完整 PDF/vignette 解析、真实 LLM 生成、生产级沙箱或替代统计专家审查。
 - R/Docker 执行必须是 optional capability。不可用时返回 `skipped`，不能让核心测试失败。
-- 真实 CRAN crawl 只允许通过开发者手动命令运行；测试和默认流程必须使用 offline fixtures。
-- 测试不能下载 SentenceTransformer 模型。
-- 如果 FAISS 不存在，测试应验证清晰错误或跳过 optional 路径；不能要求本机默认安装 FAISS。
+- v0.4 repair loop 必须是 deterministic rule-based，不得自动联网安装 R 包，不得调用 LLM。
+- 执行日志、reports、vector artifacts、processed corpus 和大文件不要提交。
+
+## v0.4 Execution / Repair 约束
+
+- 默认不执行 R。只有 `--execute` 才能尝试 Docker/R。
+- Docker/R 不可用、镜像不存在或执行被安全检查阻止时，必须 graceful skipped 或返回 `unsafe`，不能抛出未捕获异常。
+- Docker 限制参数只是可选受限执行原型，不是生产级安全边界，文档不得声称绝对安全。
+- `diagnostics.py` 只能做离线字符串规则分类，测试使用 stderr/stdout fixtures，不依赖真实 R。
+- `repair.py` 不能生成 `install.packages()`，不能自动联网安装包，不能盲目改列名。
+- `repair_loop.py` 默认最多 one-shot repair，v0.4 不做多轮复杂 agent loop。
+- repaired code 也必须再次经过静态安全检查。
 
 ## v0.3 Vector 层约束
 
@@ -44,13 +53,14 @@
 - `provenance`
 - `priority`
 
-v0.2/v0.3 processed corpus 可额外包含 `package_version`、`published`。Retrieval results 可额外包含 `retriever`、`vector_score`、`lexical_score`。
+v0.2/v0.3 processed corpus 可额外包含 `package_version`、`published`。Retrieval results 可额外包含 `retriever`、`vector_score`、`lexical_score`。v0.4 responses 可额外包含 `execution_diagnostics`、`repair_suggestions`、`repair_loop`。
 
 ## 常用命令
 
 ```powershell
 py -3 -m pytest -q
 py -3 -m rstats_agent.cli "请用 dplyr 清洗销售数据，按 store 和 month 汇总 revenue" --no-execute
+py -3 -m rstats_agent.cli "请用 dplyr 清洗销售数据，删除 price 缺失并按 store 汇总 revenue" --execute --repair --max-repairs 1
 py -3 data/crawl_cran_packages.py --offline-fixtures --output data/raw/cran_packages.json
 py -3 data/build_corpus.py --input data/raw/cran_packages.json --output data/processed/corpus.jsonl
 py -3 data/build_license_ledger.py --input data/raw/cran_packages.json --output data/processed/licenses.jsonl
@@ -64,3 +74,4 @@ py -3 data/build_vector_index.py --backend local-hash --index-backend numpy --ou
 - 不自动下载 Docker 镜像。
 - 不下载 SentenceTransformer 模型作为测试前置。
 - 不把 fixture 当成完整官方文档。
+- 不把 optional Docker/R 执行描述为生产级沙箱。
