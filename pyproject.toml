@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "RStats-Agent-RAG"
-version = "0.4.0"
+version = "0.5.0"
 description = "Local MVP for an R statistics Agent and RAG pipeline."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -23,12 +23,17 @@ vector = [
   "faiss-cpu>=1.8",
   "sentence-transformers>=3.0",
 ]
+web = [
+  "streamlit>=1.36",
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+]
 
 [project.scripts]
 rstats-agent = "rstats_agent.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["rstats_agent*", "data*"]
+include = ["rstats_agent*", "data*", "app*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

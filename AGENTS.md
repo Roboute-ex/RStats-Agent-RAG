@@ -1,15 +1,25 @@
 # AGENTS.md
 
-本项目是 `RStats-Agent-RAG`，当前版本为 v0.4。本仓库优先保持本地、可审计、可测试、Windows PowerShell 友好。
+本项目是 `RStats-Agent-RAG`，当前版本为 v0.5。本仓库优先保持本地、可审计、可测试、Windows PowerShell 友好。
 
 ## 工作原则
 
 - 测试必须 deterministic，不能访问网络，不能依赖 API key、真实 CRAN 下载、本机 R、Docker、FAISS 或 sentence-transformers。
-- 默认不调用在线 LLM；不要引入 OpenAI、BGE、Milvus、Weaviate、Streamlit、FastAPI 等非 v0.4 功能。
+- 默认不调用在线 LLM；不要引入 OpenAI、BGE、Milvus、Weaviate 等非当前版本功能。Streamlit/FastAPI 仅允许作为 v0.5 optional web dependencies。
 - README 和公开文档必须真实反映当前能力，不能夸大为完整 CRAN、完整 PDF/vignette 解析、真实 LLM 生成、生产级沙箱或替代统计专家审查。
 - R/Docker 执行必须是 optional capability。不可用时返回 `skipped`，不能让核心测试失败。
 - v0.4 repair loop 必须是 deterministic rule-based，不得自动联网安装 R 包，不得调用 LLM。
 - 执行日志、reports、vector artifacts、processed corpus 和大文件不要提交。
+
+## v0.5 Web Demo / FastAPI 约束
+
+- Streamlit、FastAPI、uvicorn 只能放在 `web` optional dependencies，不能进入核心 dependencies。
+- 默认测试不能启动真实浏览器、长期运行 Streamlit/FastAPI 服务、访问网络、依赖 API key、Docker/R、FAISS 或 sentence-transformers。
+- Web 层必须调用现有 Agent pipeline，不复制 query rewrite、retrieval、generation、execution、diagnostics 或 repair 核心逻辑。
+- 默认不执行 R；UI/API 中只有用户显式启用 `execute` 时才可尝试 Docker/R。
+- Docker/R 不可用时 Web/API 必须返回或展示 `skipped`，不能让 demo 崩溃。
+- UI 文案和公开文档不得夸大为生产级系统、生产级沙箱、真实在线 LLM 或统计专家审查替代品。
+- 不提交 generated reports、processed corpus、vector artifacts、execution logs、`.test-output/` 或 `__pycache__/`。
 
 ## v0.4 Execution / Repair 约束
 
@@ -53,7 +63,7 @@
 - `provenance`
 - `priority`
 
-v0.2/v0.3 processed corpus 可额外包含 `package_version`、`published`。Retrieval results 可额外包含 `retriever`、`vector_score`、`lexical_score`。v0.4 responses 可额外包含 `execution_diagnostics`、`repair_suggestions`、`repair_loop`。
+v0.2/v0.3 processed corpus 可额外包含 `package_version`、`published`。Retrieval results 可额外包含 `retriever`、`vector_score`、`lexical_score`。v0.4/v0.5 responses 可额外包含 `execution_diagnostics`、`repair_suggestions`、`repair_loop`、`markdown_report`。
 
 ## 常用命令
 
@@ -65,6 +75,8 @@ py -3 data/crawl_cran_packages.py --offline-fixtures --output data/raw/cran_pack
 py -3 data/build_corpus.py --input data/raw/cran_packages.json --output data/processed/corpus.jsonl
 py -3 data/build_license_ledger.py --input data/raw/cran_packages.json --output data/processed/licenses.jsonl
 py -3 data/build_vector_index.py --backend local-hash --index-backend numpy --output-dir knowledge/artifacts
+py -3 -m streamlit run app/ui_streamlit.py
+py -3 -m uvicorn app.api_fastapi:app --reload
 ```
 
 ## 不做的事
@@ -75,3 +87,4 @@ py -3 data/build_vector_index.py --backend local-hash --index-backend numpy --ou
 - 不下载 SentenceTransformer 模型作为测试前置。
 - 不把 fixture 当成完整官方文档。
 - 不把 optional Docker/R 执行描述为生产级沙箱。
+- 不把 optional Web UI / FastAPI 描述为生产级服务。

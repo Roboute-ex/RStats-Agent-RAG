@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0
+
+- Added optional Streamlit interactive demo with built-in demo cases, retriever selection, optional execute/repair controls, result display, and Markdown report download.
+- Added optional FastAPI service with `/health`, `/demo-cases`, and `/analyze` endpoints.
+- Added `app/demo_cases.py` for reusable local demo scenarios across UI, API, and tests.
+- Added `docs/demo_script.md` for interview/demo walkthroughs covering v0.1-v0.5, local-first testing, optional execution, and repair loop boundaries.
+- Added `web` optional dependencies for `streamlit`, `fastapi`, and `uvicorn`; core dependencies remain lightweight.
+- Preserved CLI and local-first workflow; default tests remain offline and deterministic without browser, real server, Docker/R, FAISS, sentence-transformers, network, or API keys.
+
 ## 0.4.0
 
 - 扩展 `ExecutionResult`，新增 `ok`、`skipped`、`reason`、`timed_out`、`duration_sec` 和 `command_preview` 等结构化字段。
