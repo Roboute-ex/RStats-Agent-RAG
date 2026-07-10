@@ -1,15 +1,26 @@
 # AGENTS.md
 
-本项目是 `RStats-Agent-RAG`，当前版本为 v0.5。本仓库优先保持本地、可审计、可测试、Windows PowerShell 友好。
+本项目是 `RStats-Agent-RAG`，当前版本为 v0.6。本仓库优先保持本地、可审计、可测试、Windows PowerShell 友好。
 
 ## 工作原则
 
 - 测试必须 deterministic，不能访问网络，不能依赖 API key、真实 CRAN 下载、本机 R、Docker、FAISS 或 sentence-transformers。
-- 默认不调用在线 LLM；不要引入 OpenAI、BGE、Milvus、Weaviate 等非当前版本功能。Streamlit/FastAPI 仅允许作为 v0.5 optional web dependencies。
+- 默认不调用在线 LLM；不要引入 OpenAI、BGE、Milvus、Weaviate 等非当前版本功能。Streamlit/FastAPI 仅允许作为 optional web dependencies。
 - README 和公开文档必须真实反映当前能力，不能夸大为完整 CRAN、完整 PDF/vignette 解析、真实 LLM 生成、生产级沙箱或替代统计专家审查。
 - R/Docker 执行必须是 optional capability。不可用时返回 `skipped`，不能让核心测试失败。
 - v0.4 repair loop 必须是 deterministic rule-based，不得自动联网安装 R 包，不得调用 LLM。
-- 执行日志、reports、vector artifacts、processed corpus 和大文件不要提交。
+- 执行日志、reports、evaluation results、vector artifacts、processed corpus 和大文件不要提交。
+
+## v0.6 Retrieval Evaluation 约束
+
+- gold labels 必须小型、人工可审计；不得为了提升指标而修改 gold labels 或刻意拟合 query set。
+- 评估测试不得联网，不得使用在线 LLM、LLM-as-a-judge、Ragas、DeepEval、LangSmith 或在线评测 SDK。
+- 默认 vector evaluation 只能使用 `LocalHashEmbeddingBackend` 和 `NumpyVectorIndex`，不得要求 FAISS、sentence-transformers 或模型下载。
+- TF-IDF、vector 和 hybrid 必须复用现有检索实现；完全同分时按 score descending、`chunk_id` ascending 稳定排序。
+- metric implementation 修改必须配套精确单元测试，尤其是 graded gain、discount、duplicate IDs、invalid k 和空 relevance。
+- `evaluation/results/` 运行产物不要提交；`evaluation/suites/` 与经实际重复验证的小型 baseline 可以提交。
+- baseline 只能显式写入或覆盖，覆盖已有 baseline 必须使用 `--force`。
+- README 和报告不得把 local-hash 指标描述为真实语义模型指标，不得把小型 benchmark 结论夸大到整个 R 生态或端到端代码质量。
 
 ## v0.5 Web Demo / FastAPI 约束
 
@@ -77,6 +88,8 @@ py -3 data/build_license_ledger.py --input data/raw/cran_packages.json --output 
 py -3 data/build_vector_index.py --backend local-hash --index-backend numpy --output-dir knowledge/artifacts
 py -3 -m streamlit run app/ui_streamlit.py
 py -3 -m uvicorn app.api_fastapi:app --reload
+py -3 scripts/evaluate_retrieval.py --suite evaluation/suites/core_functions.jsonl --corpus-profile fixture-core --retrievers tfidf vector hybrid --k 1 3 5 --output-dir evaluation/results
+py -3 scripts/evaluate_retrieval.py --suite evaluation/suites/core_functions.jsonl --corpus-profile fixture-core --retrievers tfidf vector hybrid --k 1 3 5 --compare-baseline evaluation/baselines/v0.6_core_functions.json --max-regression 0.02
 ```
 
 ## 不做的事
@@ -88,3 +101,5 @@ py -3 -m uvicorn app.api_fastapi:app --reload
 - 不把 fixture 当成完整官方文档。
 - 不把 optional Docker/R 执行描述为生产级沙箱。
 - 不把 optional Web UI / FastAPI 描述为生产级服务。
+- 不把 local-hash retrieval benchmark 描述为生产语义模型评估。
+- 不自动更新 gold labels 或 retrieval baseline。

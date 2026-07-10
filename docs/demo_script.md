@@ -1,4 +1,4 @@
-# RStats-Agent-RAG v0.5 Demo Script
+# RStats-Agent-RAG v0.6 Demo Script
 
 ## 一句话介绍
 
@@ -11,6 +11,25 @@
 - v0.3：embedding backend、本地 local hash embedding、numpy vector index、optional FAISS 和 hybrid retrieval。
 - v0.4：optional Docker/R execution、structured diagnostics、rule-based repair suggestions 和 one-shot repair loop。
 - v0.5：optional Streamlit interactive demo、optional FastAPI service、built-in demo cases 和 report download。
+- v0.6：fixed gold suites、Recall/HitRate/MRR/nDCG、retriever comparison、JSON/Markdown evaluation report 和 baseline regression guardrails。
+
+## Retrieval Evaluation Demo
+
+1. 运行固定 core functions benchmark：
+
+```powershell
+py -3 scripts/evaluate_retrieval.py --suite evaluation/suites/core_functions.jsonl --corpus-profile fixture-core --retrievers tfidf vector hybrid --k 1 3 5 --output-dir evaluation/results
+```
+
+2. 展示三种 retriever 的 overall metrics，并说明报告还包含 category、language、query type、zero-hit 和 worst-query 分析。
+3. 展示 `evaluation/baselines/v0.6_core_functions.json` 的小型、无路径、无时间戳结构。
+4. 运行 baseline comparison，说明超出 tolerance 的下降会返回退出码 3：
+
+```powershell
+py -3 scripts/evaluate_retrieval.py --suite evaluation/suites/core_functions.jsonl --corpus-profile fixture-core --retrievers tfidf vector hybrid --k 1 3 5 --compare-baseline evaluation/baselines/v0.6_core_functions.json --max-regression 0.02
+```
+
+5. 明确这是一套 curated retrieval regression benchmark，不是在线 LLM judge，也不评估生成 R 代码的正确性。
 
 ## Streamlit Demo
 
@@ -62,4 +81,3 @@ http://127.0.0.1:8000/docs
 - Docker/R 不可用、镜像缺失或安全检查阻止时返回 `skipped` 或 `unsafe`，不让核心流程崩溃。
 - Docker 参数只是受限执行原型，不是生产级安全沙箱。
 - repair loop 是 deterministic rule-based one-shot，不调用 LLM，不自动 `install.packages()`，不联网安装 R 包，也不盲目修改列名。
-

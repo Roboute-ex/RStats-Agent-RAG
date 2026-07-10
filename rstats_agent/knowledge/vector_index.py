@@ -101,7 +101,10 @@ class NumpyVectorIndex:
             return []
         query = _normalize_vector(query_embedding)
         scores = self.embeddings @ query
-        order = np.argsort(-scores)[:top_k]
+        order = sorted(
+            range(len(self.chunks)),
+            key=lambda index: (-float(scores[index]), self.chunks[index].chunk_id),
+        )[:top_k]
         results = [
             RetrievalResult.from_chunk(self.chunks[int(index)], float(scores[int(index)]))
             for index in order
@@ -110,7 +113,7 @@ class NumpyVectorIndex:
             object.__setattr__(result, "retriever", "vector")
             object.__setattr__(result, "vector_score", result.score)
             object.__setattr__(result, "lexical_score", None)
-        return results
+        return sorted(results, key=lambda result: (-result.score, result.chunk_id))
 
     def save(self, index_path: Path, metadata_path: Path) -> None:
         index_path.parent.mkdir(parents=True, exist_ok=True)
@@ -160,7 +163,7 @@ class FaissVectorIndex:
             object.__setattr__(result, "vector_score", result.score)
             object.__setattr__(result, "lexical_score", None)
             results.append(result)
-        return results
+        return sorted(results, key=lambda result: (-result.score, result.chunk_id))
 
     def save(self, index_path: Path, metadata_path: Path) -> None:
         faiss = self._import_faiss()

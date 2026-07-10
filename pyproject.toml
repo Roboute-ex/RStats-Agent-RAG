@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "RStats-Agent-RAG"
-version = "0.5.0"
+version = "0.6.0"
 description = "Local MVP for an R statistics Agent and RAG pipeline."
 readme = "README.md"
 requires-python = ">=3.10"

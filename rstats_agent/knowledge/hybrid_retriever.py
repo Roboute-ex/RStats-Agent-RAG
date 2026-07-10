@@ -15,10 +15,16 @@ class HybridRetriever:
     tfidf_retriever: LocalTfidfRetriever
     embedding_backend: EmbeddingBackend | None = None
     vector_index: VectorIndex | None = None
+    vector_weight: float = 0.6
+    lexical_weight: float = 0.4
     diagnostics: list[str] = field(default_factory=list)
     knowledge_source: str = field(init=False)
 
     def __post_init__(self) -> None:
+        if self.vector_weight < 0.0 or self.lexical_weight < 0.0:
+            raise ValueError("hybrid weights must be non-negative")
+        if self.vector_weight == 0.0 and self.lexical_weight == 0.0:
+            raise ValueError("at least one hybrid weight must be positive")
         self.knowledge_source = self.tfidf_retriever.knowledge_source
 
     def search(self, query: str | dict[str, str], top_k: int = 6) -> list[RetrievalResult]:
@@ -39,7 +45,7 @@ class HybridRetriever:
         for chunk_id in all_ids:
             lexical_score = lexical_scores.get(chunk_id, 0.0)
             vector_score = vector_scores.get(chunk_id, 0.0)
-            final_score = 0.6 * vector_score + 0.4 * lexical_score
+            final_score = self.vector_weight * vector_score + self.lexical_weight * lexical_score
             base = by_id[chunk_id]
             result = RetrievalResult(
                 chunk_id=base.chunk_id,
@@ -61,6 +67,6 @@ class HybridRetriever:
             )
             merged[chunk_id] = result
 
-        results = sorted(merged.values(), key=lambda result: result.score, reverse=True)[:top_k]
+        results = sorted(merged.values(), key=lambda result: (-result.score, result.chunk_id))[:top_k]
         self.diagnostics.append("hybrid_retriever_used=vector+tfidf")
         return results

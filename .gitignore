@@ -23,3 +23,7 @@ knowledge/artifacts/*.jsonl
 knowledge/artifacts/*.pkl
 knowledge/artifacts/*.parquet
 !knowledge/artifacts/.gitkeep
+evaluation/results/*
+!evaluation/results/.gitkeep
+!evaluation/baselines/*.json
+!evaluation/baselines/.gitkeep

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.0
+
+- Added two small, human-auditable gold query suites for core R functions and offline CRAN metadata retrieval.
+- Added dependency-free Recall@k, HitRate@k, reciprocal rank, MRR@k, DCG@k, and nDCG@k metrics with exact unit tests.
+- Added deterministic TF-IDF, local-hash + numpy vector, and hybrid retrieval evaluation with query, overall, category, language, and query-type summaries.
+- Added JSON and Markdown evaluation reports with zero-hit and worst-query inspection.
+- Added explicit baseline save/load and regression comparison guardrails with structural compatibility checks and overwrite protection.
+- Added `scripts/evaluate_retrieval.py` with report, baseline, comparison, tolerance, hybrid-weight, and stable exit-code support.
+- Added v0.6 offline tests and retrieval evaluation documentation; no new core dependency was introduced.
+
 ## 0.5.0
 
 - Added optional Streamlit interactive demo with built-in demo cases, retriever selection, optional execute/repair controls, result display, and Markdown report download.

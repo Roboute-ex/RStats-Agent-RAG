@@ -78,7 +78,7 @@ class LocalTfidfRetriever:
             )
             for index, chunk in enumerate(self.chunks)
         ]
-        results.sort(key=lambda item: item.score, reverse=True)
+        results.sort(key=lambda item: (-item.score, item.chunk_id))
         return results[:top_k]
 
 

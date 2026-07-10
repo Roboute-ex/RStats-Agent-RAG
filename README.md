@@ -2,7 +2,7 @@
 
 `RStats-Agent-RAG` 是一个面向 R 统计生态的 local-first Agent + RAG 工程 MVP。它把中文或英文统计分析需求转成可审计的 R 代码，并同时给出解释、输入假设、可能失败原因、引用片段、可选执行状态、结构化诊断、规则化修复建议和 Markdown 报告。
 
-当前版本为 v0.5。v0.5 在 v0.4 的 optional Docker/R execution、structured diagnostics 和 one-shot repair loop 基础上，新增 optional Streamlit interactive demo、optional FastAPI service、built-in demo cases 和 Markdown report download，使项目可以通过 CLI、Web UI 或本地 HTTP API 演示。
+当前版本为 v0.6。v0.6 在 v0.5 本地 CLI、Web/API 演示能力之上，新增固定 gold query suites、标准排序指标、TF-IDF / vector / hybrid 统一评估、JSON/Markdown 报告和 baseline regression guardrails，使检索层可以离线量化并持续检查回退。
 
 项目坚持 local-first 和 offline-test-first：默认不调用在线 LLM，不依赖 OpenAI API 或 API key，不要求测试联网、下载模型、安装 R、安装 Docker、安装 FAISS、安装 sentence-transformers、启动浏览器或启动真实 Web 服务。Docker/R、FAISS、sentence-transformers、Streamlit、FastAPI 和 uvicorn 都是可选能力。
 
@@ -16,6 +16,9 @@ flowchart LR
   CL --> VE["Vector Retriever"]
   TF --> HF["Hybrid Rank Fusion"]
   VE --> HF
+  TF -.-> RE["v0.6 Retrieval Evaluation"]
+  VE -.-> RE
+  HF -.-> RE
   HF --> CF["Context Fusion"]
   CF --> TG["Template Generator"]
   TG --> SC["Safety Checker"]
@@ -31,6 +34,7 @@ flowchart LR
 - TF-IDF Retriever：稳定、离线、可测试的词法检索。
 - Vector Retriever：基于 embedding 的本地语义检索。
 - Hybrid Rank Fusion：合并 lexical score 和 vector score。
+- Retrieval Evaluation：用固定 query、graded relevance 和 Recall/MRR/nDCG 离线比较三种检索器，不参与在线 Agent 请求。
 - Template Generator：当前使用 deterministic templates，不调用在线 LLM。
 - Safety Checker：阻止危险 R 调用。
 - Optional Executor：只有显式启用执行时尝试 Docker/R，不可用时 graceful skipped。
@@ -46,6 +50,7 @@ flowchart LR
 | v0.3 | Embedding Backend + Local Vector Index | local hash embedding、optional sentence-transformers、numpy vector index、optional FAISS、hybrid retrieval | 从关键词检索扩展到本地向量检索 RAG 架构 |
 | v0.4 | R Execution Diagnostics + Repair Loop | optional Docker/R execution、structured diagnostics、rule-based repair suggestions、one-shot repair loop | 从“生成代码”推进到“执行反馈和修复建议”闭环 |
 | v0.5 | Interactive Web Demo + FastAPI Service | optional Streamlit UI、optional FastAPI service、built-in demo cases、report download | 从 CLI 原型升级为可展示、可演示、可接口化调用的本地应用 |
+| v0.6 | Retrieval Evaluation & Regression Guardrails | gold suites、Recall@k、HitRate@k、MRR、nDCG、baseline comparison | 从“有检索功能”升级到可量化、可回归验证的检索系统 |
 
 ## 当前支持任务
 
@@ -196,6 +201,41 @@ py -3 data/build_vector_index.py --backend local-hash --index-backend faiss --ou
 
 如果 FAISS 未安装，FAISS 路径会给出清晰错误；默认测试和 numpy 构建不受影响。
 
+## v0.6 Retrieval Evaluation
+
+v0.6 提供两套固定、人工可审计的 gold query suite：
+
+- `core_functions.jsonl`：使用固定 `r_core_corpus.jsonl`，覆盖 dplyr、ggplot2 和 lme4 的中英文 function / concept / debug query。
+- `cran_metadata.jsonl`：每次从四个本地 CRAN HTML fixtures 在内存中构建 corpus，只评估 package overview、manual、vignette 和 source metadata。
+
+三种检索方式都保持离线和 deterministic：`tfidf` 复用现有词法检索器，`vector` 固定使用 local-hash + numpy，`hybrid` 复用现有分数融合。默认评估 k 为 1、3、5：
+
+- Recall@k：top-k 命中的 relevant gold chunk 比例。
+- HitRate@k：top-k 是否至少命中一个 relevant chunk。
+- MRR@k：首个 relevant chunk reciprocal rank 的 query 宏平均。
+- nDCG@k：使用 `2^grade - 1` gain 和 `log2(rank + 1)` discount 的 graded ranking quality。
+
+运行 core functions suite：
+
+```powershell
+py -3 scripts/evaluate_retrieval.py --suite evaluation/suites/core_functions.jsonl --corpus-profile fixture-core --retrievers tfidf vector hybrid --k 1 3 5 --output-dir evaluation/results
+```
+
+运行 CRAN metadata suite：
+
+```powershell
+py -3 scripts/evaluate_retrieval.py --suite evaluation/suites/cran_metadata.jsonl --corpus-profile cran-metadata --retrievers tfidf vector hybrid --k 1 3 5 --output-dir evaluation/results/cran
+```
+
+显式写入或比较 baseline：
+
+```powershell
+py -3 scripts/evaluate_retrieval.py --suite evaluation/suites/core_functions.jsonl --corpus-profile fixture-core --retrievers tfidf vector hybrid --k 1 3 5 --write-baseline evaluation/baselines/v0.6_core_functions.json --force
+py -3 scripts/evaluate_retrieval.py --suite evaluation/suites/core_functions.jsonl --corpus-profile fixture-core --retrievers tfidf vector hybrid --k 1 3 5 --compare-baseline evaluation/baselines/v0.6_core_functions.json --max-regression 0.02
+```
+
+报告包含 query-level、overall、category、language、query type、zero-hit 和 worst-query 结果。完整运行结果写入 `evaluation/results/` 并被 Git 忽略；baseline 只有显式请求才会写入或覆盖。
+
 ## 目录结构
 
 ```text
@@ -210,9 +250,17 @@ data/
   build_license_ledger.py
 docs/
   demo_script.md
+  retrieval_evaluation.md
+evaluation/
+  suites/
+    core_functions.jsonl
+    cran_metadata.jsonl
+  baselines/
+  results/
 knowledge/artifacts/
   .gitkeep
 rstats_agent/
+  evaluation/
   embeddings/
   agents/
     repair_loop.py
@@ -224,9 +272,11 @@ rstats_agent/
   knowledge/
   reporting/
 tests/
+scripts/
+  evaluate_retrieval.py
 ```
 
-`knowledge/artifacts/` 中生成的索引文件、`data/processed/*.jsonl`、`reports/*.md`、`.test-output/` 和执行日志都不应提交。
+`evaluation/results/`、`knowledge/artifacts/` 中生成的索引文件、`data/processed/*.jsonl`、`reports/*.md`、`.test-output/` 和执行日志都不应提交。小型 gold suites 与显式生成并复核的 baseline 可以提交。
 
 ## 测试
 
@@ -234,7 +284,7 @@ tests/
 py -3 -m pytest -q
 ```
 
-测试覆盖 v0.1-v0.5 的核心路径，并保持离线 deterministic。默认测试不依赖浏览器、真实服务器、Docker/R、FAISS、sentence-transformers、网络或 API key。FastAPI 相关测试在依赖可用时使用 `TestClient`，依赖缺失时跳过或验证清晰提示。
+测试覆盖 v0.1-v0.6 的核心路径，并保持离线 deterministic。默认测试不依赖浏览器、真实服务器、Docker/R、FAISS、sentence-transformers、网络或 API key。v0.6 测试使用固定 fixture corpus、local-hash 和 numpy；FastAPI 相关测试在依赖可用时使用 `TestClient`，依赖缺失时跳过或验证清晰提示。
 
 ## 工程亮点
 
@@ -253,6 +303,9 @@ py -3 -m pytest -q
 - Optional Streamlit interactive demo
 - Optional FastAPI service
 - Built-in demo cases and Markdown report download
+- Auditable gold retrieval suites and graded relevance judgments
+- Recall@k, HitRate@k, MRR@k, and nDCG@k reporting
+- Deterministic retrieval baseline regression guardrails
 
 ## 当前边界
 
@@ -267,9 +320,12 @@ py -3 -m pytest -q
 - 当前 generator 是 template-based，不是自由生成模型。
 - 当前 Docker/R 执行是受限原型，不是生产级安全沙箱。
 - 当前 Streamlit/FastAPI 是本地 demo/service 层，不是生产级部署。
+- v0.6 query set 是项目维护的小型 curated benchmark，不代表整个 R 生态。
+- v0.6 不做 LLM evaluation、generation evaluation 或 online judge。
+- local-hash 不是生产语义 embedding；检索指标提升也不自动等于端到端 R 代码更正确。
 
 ## Roadmap
 
-- v0.6：retrieval evaluation，包含 Recall@k / MRR / nDCG。
-- v0.7：更多 R 包与更丰富文档解析。
+- v0.7：更多 R 包与更丰富的 reference/vignette 文档解析。
 - v0.8：deployment polish / public demo mode。
+- v0.9：generation evaluation / execution benchmark（如后续需要）。
